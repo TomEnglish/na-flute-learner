@@ -26,7 +26,72 @@ class FluteLearner {
         this.assessDetectedNotes = [];
         this.assessTimer = null;
         
-        // iOS detection
+        // Profile management
+        this.profiles = this.loadProfiles();
+        this.activeFlute = null;
+        
+        this.init();
+    }
+    
+    // ===== PROFILE MANAGEMENT =====
+    
+    loadProfiles() {
+        try {
+            const stored = localStorage.getItem('naflute_profiles');
+            return stored ? JSON.parse(stored) : { flutes: [], activeFluteId: null };
+        } catch (e) {
+            console.error('Failed to load profiles:', e);
+            return { flutes: [], activeFluteId: null };
+        }
+    }
+    
+    saveProfiles() {
+        try {
+            localStorage.setItem('naflute_profiles', JSON.stringify(this.profiles));
+        } catch (e) {
+            console.error('Failed to save profiles:', e);
+        }
+    }
+    
+    saveFlute(name, key, scale) {
+        const id = Date.now().toString();
+        const flute = {
+            id,
+            name,
+            key,
+            scale,
+            createdAt: new Date().toISOString()
+        };
+        this.profiles.flutes.push(flute);
+        this.profiles.activeFluteId = id;
+        this.saveProfiles();
+        return flute;
+    }
+    
+    deleteFlute(id) {
+        this.profiles.flutes = this.profiles.flutes.filter(f => f.id !== id);
+        if (this.profiles.activeFluteId === id) {
+            this.profiles.activeFluteId = this.profiles.flutes[0]?.id || null;
+        }
+        this.saveProfiles();
+    }
+    
+    setActiveFlute(id) {
+        this.profiles.activeFluteId = id;
+        this.saveProfiles();
+        const flute = this.profiles.flutes.find(f => f.id === id);
+        if (flute) {
+            this.fluteKey = flute.key;
+            this.customScale = flute.scale;
+        }
+    }
+    
+    getActiveFlute() {
+        if (!this.profiles.activeFluteId) return null;
+        return this.profiles.flutes.find(f => f.id === this.profiles.activeFluteId);
+    }
+    
+    // iOS detection
         this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         
@@ -188,6 +253,91 @@ class FluteLearner {
         }
 
         this.loadProgress();
+        this.updateFluteSelector();
+    }
+    
+    updateFluteSelector() {
+        // Check if there's a saved flutes section, if not create it
+        let savedSection = document.getElementById('savedFlutesSection');
+        if (!savedSection && this.profiles.flutes.length > 0) {
+            // Create the saved flutes section
+            savedSection = document.createElement('div');
+            savedSection.id = 'savedFlutesSection';
+            savedSection.className = 'setup-section';
+            savedSection.innerHTML = `
+                <h3>Your Flutes</h3>
+                <div class="saved-flutes-list" id="savedFlutesList"></div>
+            `;
+            
+            // Insert after the first setup-section
+            const firstSection = this.elements.permissionScreen.querySelector('.setup-section');
+            if (firstSection) {
+                firstSection.parentNode.insertBefore(savedSection, firstSection.nextSibling);
+            }
+        }
+        
+        if (savedSection) {
+            const listEl = document.getElementById('savedFlutesList');
+            if (listEl) {
+                listEl.innerHTML = this.profiles.flutes.map(flute => `
+                    <div class="saved-flute-item" data-id="${flute.id}">
+                        <span class="flute-name">${flute.name}</span>
+                        <span class="flute-key">${flute.key}</span>
+                        <button class="flute-play-btn" data-id="${flute.id}">▶ Play</button>
+                        <button class="flute-delete-btn" data-id="${flute.id}">🗑</button>
+                    </div>
+                `).join('');
+                
+                // Add event listeners
+                listEl.querySelectorAll('.flute-play-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = e.target.dataset.id;
+                        this.loadSavedFlute(id);
+                    });
+                });
+                
+                listEl.querySelectorAll('.flute-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = e.target.dataset.id;
+                        if (confirm('Delete this flute?')) {
+                            this.deleteFlute(id);
+                            this.updateFluteSelector();
+                        }
+                    });
+                });
+            }
+            
+            savedSection.style.display = this.profiles.flutes.length > 0 ? 'block' : 'none';
+        }
+    }
+    
+    async loadSavedFlute(id) {
+        const flute = this.profiles.flutes.find(f => f.id === id);
+        if (!flute) return;
+        
+        this.setActiveFlute(id);
+        this.activeFlute = flute;
+        this.fluteKey = flute.key;
+        this.customScale = flute.scale;
+        
+        // Initialize audio if needed
+        if (!this.audioContext) {
+            const success = await this.initAudio();
+            if (!success) return;
+        }
+        
+        this.lessons = this.generateLessonsFromScale(flute.scale);
+        
+        this.elements.permissionScreen.style.display = 'none';
+        this.elements.appMain.style.display = 'block';
+        this.elements.modeToggle.style.display = 'flex';
+        this.isActive = true;
+        this.mode = 'lesson';
+        this.loadLesson(this.currentLesson);
+        
+        if (!this.isListening) {
+            this.startListening();
+        }
     }
 
     async start() {
@@ -485,8 +635,17 @@ class FluteLearner {
             return;
         }
 
+        // Prompt for flute name
+        const defaultName = `My ${capturedScale[0].replace(/[0-9]/g, '')} Flute`;
+        const fluteName = prompt('Name this flute:', defaultName) || defaultName;
+
+        // Detect key from root note
+        const rootNote = capturedScale[0].replace(/[0-9]/g, '');
+        
+        // Save the flute
+        const savedFlute = this.saveFlute(fluteName, rootNote, capturedScale);
+        this.activeFlute = savedFlute;
         this.customScale = capturedScale;
-        localStorage.setItem('fluteCustomScale', JSON.stringify(capturedScale));
 
         this.lessons = this.generateLessonsFromScale(capturedScale);
 
@@ -495,6 +654,9 @@ class FluteLearner {
         this.elements.modeToggle.style.display = 'flex';
         this.mode = 'lesson';
         this.loadLesson(this.currentLesson);
+        
+        // Update the UI to show saved flutes
+        this.updateFluteSelector();
     }
 
     generateLessonsFromScale(scale) {
