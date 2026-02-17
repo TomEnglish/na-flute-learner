@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Interactive Native American flute learning app with real-time pitch feedback">
+    
+    <!-- iOS Safari PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NA Flute">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#8B4513">
+    <meta name="msapplication-TileColor" content="#8B4513">
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192.png">
+    
+    <!-- Standard PWA -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-72.png">
+    
+    <title>NA Flute Learner</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 Native American Flute Learner</h1>
+            <p class="subtitle">Listen • Play • Learn</p>
+        </header>
+
+        <div class="permission-screen" id="permissionScreen">
+            <div class="permission-content">
+                <h2>🎵 Flute Setup</h2>
+
+                <div class="setup-section">
+                    <button id="assessFluteBtn" class="primary-btn">🎯 Assess My Flute (Recommended)</button>
+                    <p class="setup-hint">Play each note to discover your flute's exact scale</p>
+                </div>
+
+                <div class="setup-divider">
+                    <span>or</span>
+                </div>
+
+                <div class="setup-section">
+                    <h3>Quick Start (if you know your key)</h3>
+                    <div class="flute-key-selector">
+                        <select id="fluteKeySelect">
+                            <option value="">-- Select Flute Key --</option>
+                            <optgroup label="Most Common">
+                                <option value="G">G</option>
+                                <option value="F#">F#</option>
+                                <option value="F">F</option>
+                                <option value="E">E</option>
+                            </optgroup>
+                            <optgroup label="Other Keys">
+                                <option value="D">D</option>
+                                <option value="C#">C#</option>
+                                <option value="C">C</option>
+                                <option value="A">A</option>
+                                <option value="Bb">Bb / A#</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <button id="startBtn" class="secondary-btn">Start Lessons →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assessment Mode -->
+        <div class="assessment-mode" id="assessmentMode" style="display: none;">
+            <div class="assessment-header">
+                <h2>🎯 Flute Assessment</h2>
+                <p class="assessment-instructions">Play each note on your flute. The app will learn your exact scale.</p>
+            </div>
+
+            <div class="assessment-progress">
+                <div class="assessment-step current" data-step="1">
+                    <span class="step-num">1</span>
+                    <span class="step-label">All holes covered</span>
+                </div>
+                <div class="assessment-step" data-step="2">
+                    <span class="step-num">2</span>
+                    <span class="step-label">Lift 1 hole</span>
+                </div>
+                <div class="assessment-step" data-step="3">
+                    <span class="step-num">3</span>
+                    <span class="step-label">Lift 2 holes</span>
+                </div>
+                <div class="assessment-step" data-step="4">
+                    <span class="step-num">4</span>
+                    <span class="step-label">Lift 3 holes</span>
+                </div>
+                <div class="assessment-step" data-step="5">
+                    <span class="step-num">5</span>
+                    <span class="step-label">Lift 4 holes</span>
+                </div>
+                <div class="assessment-step" data-step="6">
+                    <span class="step-num">6</span>
+                    <span class="step-label">All holes open</span>
+                </div>
+            </div>
+
+            <div class="assessment-current">
+                <div class="assessment-note-display">
+                    <span class="detected-note" id="assessDetectedNote">-</span>
+                    <span class="detected-freq" id="assessDetectedFreq">- Hz</span>
+                </div>
+                <p class="assessment-hint" id="assessHint">Get ready to play...</p>
+                <button id="assessCaptureBtn" class="primary-btn">✓ Yes, Next Note</button>
+                <button id="assessSkipBtn" class="secondary-btn" style="margin-top: 8px;">↺ Retry</button>
+            </div>
+
+            <div class="assessment-captured">
+                <h3>Notes Detected:</h3>
+                <div class="captured-notes" id="capturedNotes">
+                    <!-- Will be populated -->
+                </div>
+            </div>
+
+            <div class="assessment-actions">
+                <button id="assessBackBtn" class="secondary-btn">← Back</button>
+                <button id="assessDoneBtn" class="primary-btn" style="display: none;">Save & Start Learning →</button>
+            </div>
+        </div>
+
+        <main class="app-main" id="appMain" style="display: none;">
+            <!-- Lesson Display -->
+            <section class="lesson-section">
+                <h2 id="lessonTitle">Lesson 1: Basic Notes</h2>
+                <p class="lesson-instructions">Play each highlighted note and hold it steady until the progress bar fills</p>
+
+                <!-- Finger Diagram - Only show at start -->
+                <div class="finger-diagram-container" id="fingerDiagramContainer" style="display: none;">
+                    <div class="finger-diagram" id="fingerDiagram">
+                        <div class="flute-body">
+                            <div class="hole-row">
+                                <div class="hole" data-hole="1">●</div>
+                                <div class="hole" data-hole="2">●</div>
+                                <div class="hole" data-hole="3">●</div>
+                            </div>
+                            <div class="hole-row">
+                                <div class="hole" data-hole="4">●</div>
+                                <div class="hole" data-hole="5">●</div>
+                                <div class="hole" data-hole="6">●</div>
+                            </div>
+                        </div>
+                        <p class="fingering-label" id="fingeringLabel">All holes covered</p>
+                    </div>
+                    <button class="secondary-btn" onclick="document.getElementById('fingerDiagramContainer').style.display='none'" style="margin-top: 12px;">Got it, hide diagram</button>
+                </div>
+
+                <div class="note-sequence" id="noteSequence">
+                    <!-- Notes will be populated by JS -->
+                </div>
+            </section>
+
+            <!-- Pitch Feedback -->
+            <section class="feedback-section">
+                <!-- Status Section - Moved to Top -->
+                <div class="accuracy-meter" style="margin-bottom: 20px;">
+                    <span class="label">Note Accuracy</span>
+                    <div class="meter-bar">
+                        <div class="meter-fill" id="accuracyMeter"></div>
+                    </div>
+                    <span class="value" id="accuracyValue">0%</span>
+                </div>
+                
+                <div class="target-note">
+                    <span class="label">Target</span>
+                    <span class="note" id="targetNote">G</span>
+                    <div class="hold-indicator" id="holdIndicator">
+                        <div class="hold-bar" id="holdBar"></div>
+                    </div>
+                    <span class="hold-text" id="holdText">Hold the note...</span>
+                </div>
+                
+                <div class="pitch-indicator">
+                    <div class="tuner">
+                        <div class="flat-zone">♭</div>
+                        <div class="center-zone" id="centerZone">
+                            <div class="needle" id="needle"></div>
+                        </div>
+                        <div class="sharp-zone">♯</div>
+                    </div>
+                    <div class="cents-display" id="centsDisplay">0¢</div>
+                </div>
+
+                <div class="current-note">
+                    <span class="label">You're playing</span>
+                    <span class="note" id="currentNote">—</span>
+                    <span class="frequency" id="frequency">— Hz</span>
+                </div>
+            </section>
+
+            <!-- Controls -->
+            <section class="controls">
+                <button id="resetBtn" class="secondary-btn">↺ Reset Lesson</button>
+                <button id="nextLessonBtn" class="secondary-btn" style="display: none;">Next Lesson →</button>
+            </section>
+
+            <!-- Completion Modal -->
+            <div class="completion-modal" id="completionModal" style="display: none;">
+                <div class="modal-content">
+                    <h2>🎉 Lesson Complete!</h2>
+                    <div class="stats">
+                        <div class="stat">
+                            <span class="stat-value" id="statAccuracy">0%</span>
+                            <span class="stat-label">Average Accuracy</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value" id="statTime">0s</span>
+                            <span class="stat-label">Time Taken</span>
+                        </div>
+                    </div>
+                    <button id="continueBtn" class="primary-btn">Continue</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Tuner Mode -->
+        <div class="tuner-mode" id="tunerMode" style="display: none;">
+            <h2>🎸 Tuner Mode</h2>
+            <p class="tuner-instructions">Play your flute to see what note you're playing. Cover all holes to find your flute's key.</p>
+            <div class="big-note" id="tunerNote">-</div>
+            <div class="big-frequency" id="tunerFrequency">- Hz</div>
+            <div class="pitch-indicator">
+                <div class="tuner">
+                    <div class="flat-zone">♭</div>
+                    <div class="center-zone">
+                        <div class="needle" id="tunerNeedle"></div>
+                    </div>
+                    <div class="sharp-zone">♯</div>
+                </div>
+                <div class="cents-display" id="tunerCents">0¢</div>
+            </div>
+            <button id="backToSetupBtn" class="secondary-btn" style="margin-top: 24px;">← Back to Setup</button>
+        </div>
+
+        <!-- Mode Toggle - visible after starting lessons -->
+        <div class="mode-toggle" id="modeToggle" style="display: none;">
+            <button id="lessonModeBtn" class="active">Lesson Mode</button>
+            <button id="tunerModeBtn">Tuner Mode</button>
+        </div>
+    </div>
+
+    <script src="pitch-detector.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('SW registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('SW registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

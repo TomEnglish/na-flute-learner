@@ -1,0 +1,68 @@
+{
+  "name": "NA Flute Learner",
+  "short_name": "FluteApp",
+  "description": "Interactive Native American flute learning app with real-time pitch feedback",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#8B4513",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["music", "education"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Start Lesson",
+      "short_name": "Lesson",
+      "description": "Start a flute lesson",
+      "url": "/index.html?mode=lesson"
+    },
+    {
+      "name": "Tuner",
+      "short_name": "Tuner",
+      "description": "Open the tuner",
+      "url": "/index.html?mode=tuner"
+    }
+  ]
+}
