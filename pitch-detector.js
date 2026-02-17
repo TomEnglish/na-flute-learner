@@ -176,8 +176,8 @@ class PitchDetector {
             console.log(`🎤 Audio RMS: ${rms.toFixed(4)} ${rms > 0.008 ? '✓' : '(too quiet)'}`);
         }
 
-        // Not enough signal - adjusted threshold for flute
-        if (rms < 0.008) return -1;
+        // Not enough signal - adjusted threshold for flute (raised to filter background noise)
+        if (rms < 0.02) return -1;
 
         let lastCorrelation = 1;
         for (let offset = 0; offset < MAX_SAMPLES; offset++) {
