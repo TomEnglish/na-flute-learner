@@ -212,12 +212,14 @@ class FluteLearner {
             fingeringLabel: document.getElementById('fingeringLabel')
         };
 
-        // Event listeners
+        // Event listeners (with iOS touch support)
         if (this.elements.startBtn) {
             this.elements.startBtn.addEventListener('click', () => this.start());
+            this.elements.startBtn.addEventListener('touchend', (e) => { e.preventDefault(); this.start(); });
         }
         if (this.elements.assessFluteBtn) {
             this.elements.assessFluteBtn.addEventListener('click', () => this.startAssessment());
+            this.elements.assessFluteBtn.addEventListener('touchend', (e) => { e.preventDefault(); this.startAssessment(); });
         }
         if (this.elements.backToSetupBtn) {
             this.elements.backToSetupBtn.addEventListener('click', () => this.backToSetup());
@@ -288,9 +290,15 @@ class FluteLearner {
                     </div>
                 `).join('');
                 
-                // Add event listeners
+                // Add event listeners (both click and touch for iOS compatibility)
                 listEl.querySelectorAll('.flute-play-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const id = e.target.dataset.id;
+                        this.loadSavedFlute(id);
+                    });
+                    btn.addEventListener('touchend', (e) => {
+                        e.preventDefault();
                         const id = e.target.dataset.id;
                         this.loadSavedFlute(id);
                     });
@@ -298,6 +306,15 @@ class FluteLearner {
                 
                 listEl.querySelectorAll('.flute-delete-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const id = e.target.dataset.id;
+                        if (confirm('Delete this flute?')) {
+                            this.deleteFlute(id);
+                            this.updateFluteSelector();
+                        }
+                    });
+                    btn.addEventListener('touchend', (e) => {
+                        e.preventDefault();
                         const id = e.target.dataset.id;
                         if (confirm('Delete this flute?')) {
                             this.deleteFlute(id);
