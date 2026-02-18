@@ -456,33 +456,41 @@ class FluteLearner {
         this.elements.assessFluteBtn.textContent = 'Starting...';
         this.elements.assessFluteBtn.disabled = true;
 
-        if (!this.audioContext) {
-            console.log('🎤 Initializing audio...');
-            const success = await this.initAudio();
-            if (!success) {
-                this.elements.assessFluteBtn.textContent = '🎯 Assess My Flute (Recommended)';
-                this.elements.assessFluteBtn.disabled = false;
-                return;
+        try {
+            if (!this.audioContext) {
+                console.log('🎤 Initializing audio...');
+                const success = await this.initAudio();
+                if (!success) {
+                    this.elements.assessFluteBtn.textContent = '🎯 Assess My Flute (Recommended)';
+                    this.elements.assessFluteBtn.disabled = false;
+                    alert('Could not access microphone. Please allow microphone permission.');
+                    return;
+                }
             }
-        }
 
-        console.log('✅ Audio ready');
-        this.elements.permissionScreen.style.display = 'none';
-        this.elements.assessmentMode.style.display = 'block';
-        this.isActive = true;
-        this.mode = 'assessment';
-        this.assessmentStep = 0;
-        this.assessmentNotes = [];
-        this.assessPhase = 'ready';
-        
-        this.updateCapturedNotes();
-        
-        if (!this.isListening) {
-            console.log('🎧 Starting listening loop...');
-            this.startListening();
+            console.log('✅ Audio ready');
+            this.elements.permissionScreen.style.display = 'none';
+            this.elements.assessmentMode.style.display = 'block';
+            this.isActive = true;
+            this.mode = 'assessment';
+            this.assessmentStep = 0;
+            this.assessmentNotes = [];
+            this.assessPhase = 'ready';
+            
+            this.updateCapturedNotes();
+            
+            if (!this.isListening) {
+                console.log('🎧 Starting listening loop...');
+                this.startListening();
+            }
+            
+            setTimeout(() => this.beginNoteCapture(), 500);
+        } catch (err) {
+            console.error('Assessment error:', err);
+            this.elements.assessFluteBtn.textContent = '🎯 Assess My Flute (Recommended)';
+            this.elements.assessFluteBtn.disabled = false;
+            alert('Error starting assessment: ' + err.message);
         }
-        
-        setTimeout(() => this.beginNoteCapture(), 500);
     }
 
     beginNoteCapture() {
