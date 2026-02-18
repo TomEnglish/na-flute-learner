@@ -42,7 +42,7 @@
                 <h2>🎵 Flute Setup</h2>
 
                 <div class="setup-section">
-                    <button id="assessFluteBtn" class="primary-btn">🎯 Assess My Flute (Recommended)</button>
+                    <button id="assessFluteBtn" class="primary-btn" role="button" onclick="if(window.app) window.app.startAssessment()">🎯 Assess My Flute (Recommended)</button>
                     <p class="setup-hint">Play each note to discover your flute's exact scale</p>
                 </div>
 
@@ -70,7 +70,7 @@
                             </optgroup>
                         </select>
                     </div>
-                    <button id="startBtn" class="secondary-btn">Start Lessons →</button>
+                    <button id="startBtn" class="secondary-btn" role="button" onclick="if(window.app) window.app.start()">Start Lessons →</button>
                 </div>
             </div>
         </div>

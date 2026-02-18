@@ -1020,5 +1020,25 @@ class FluteLearner {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    window.app = new FluteLearner();
+    try {
+        console.log('🚀 Initializing Flute Learner...');
+        window.app = new FluteLearner();
+        console.log('✅ Flute Learner initialized');
+        
+        // Visual indicator that JS is working
+        const header = document.querySelector('header h1');
+        if (header) {
+            header.style.borderBottom = '2px solid #4CAF50';
+        }
+    } catch (err) {
+        console.error('Failed to initialize:', err);
+        alert('App failed to load: ' + err.message);
+    }
 });
+
+// Global error handler
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+    console.error('Global error:', msg, url, lineNo);
+    alert('Error: ' + msg);
+    return false;
+};
