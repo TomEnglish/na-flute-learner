@@ -362,6 +362,7 @@ class FluteLearner {
         if (!this.fluteKey) {
             this.elements.fluteKeySelect.style.borderColor = '#f44336';
             this.elements.fluteKeySelect.focus();
+            alert('Please select a flute key first');
             return;
         }
         
@@ -369,23 +370,36 @@ class FluteLearner {
         this.elements.startBtn.textContent = 'Starting...';
         this.elements.startBtn.disabled = true;
 
-        this.lessons = this.generateLessonsForKey(this.fluteKey);
-        console.log(`🎵 Generated lessons for ${this.fluteKey} flute:`, this.lessons);
+        try {
+            this.lessons = this.generateLessonsForKey(this.fluteKey);
+            console.log(`🎵 Generated lessons for ${this.fluteKey} flute:`, this.lessons);
 
-        if (!this.audioContext) {
-            const success = await this.initAudio();
-            if (!success) return;
-        }
+            if (!this.audioContext) {
+                this.elements.startBtn.textContent = 'Requesting mic...';
+                const success = await this.initAudio();
+                if (!success) {
+                    this.elements.startBtn.textContent = 'Start Lessons →';
+                    this.elements.startBtn.disabled = false;
+                    alert('Could not access microphone. Check Safari settings.');
+                    return;
+                }
+            }
 
-        this.elements.permissionScreen.style.display = 'none';
-        this.elements.appMain.style.display = 'block';
-        this.elements.modeToggle.style.display = 'flex';
-        this.isActive = true;
-        this.mode = 'lesson';
-        this.loadLesson(this.currentLesson);
-        
-        if (!this.isListening) {
-            this.startListening();
+            this.elements.permissionScreen.style.display = 'none';
+            this.elements.appMain.style.display = 'block';
+            this.elements.modeToggle.style.display = 'flex';
+            this.isActive = true;
+            this.mode = 'lesson';
+            this.loadLesson(this.currentLesson);
+            
+            if (!this.isListening) {
+                this.startListening();
+            }
+        } catch (err) {
+            console.error('Start error:', err);
+            this.elements.startBtn.textContent = 'Start Lessons →';
+            this.elements.startBtn.disabled = false;
+            alert('Error: ' + err.message);
         }
     }
 
@@ -402,19 +416,10 @@ class FluteLearner {
             
             // iOS requires user gesture to resume
             if (this.audioContext.state === 'suspended') {
-                // Create a one-time touch/click handler to resume
-                const resumeHandler = async () => {
-                    if (this.audioContext.state === 'suspended') {
-                        await this.audioContext.resume();
-                        console.log('🎤 AudioContext resumed via user gesture');
-                    }
-                    document.removeEventListener('touchstart', resumeHandler);
-                    document.removeEventListener('click', resumeHandler);
-                };
-                document.addEventListener('touchstart', resumeHandler, { once: true });
-                document.addEventListener('click', resumeHandler, { once: true });
+                await this.audioContext.resume();
+                console.log('🎤 AudioContext resumed');
             }
-            
+
             this.pitchDetector = new PitchDetector(this.audioContext);
             
             // Set callback for AudioWorklet mode
@@ -429,12 +434,12 @@ class FluteLearner {
                 console.log(`🎤 Using AudioWorklet: ${this.pitchDetector.isUsingWorklet()}`);
                 return true;
             } else {
-                alert('Microphone access denied. Please allow microphone access.');
+                console.error('🎤 pitchDetector.init() returned false');
                 return false;
             }
         } catch (err) {
             console.error('Failed to initialize audio:', err);
-            alert('Failed to access microphone.');
+            alert('Microphone error: ' + err.message);
             return false;
         }
     }
