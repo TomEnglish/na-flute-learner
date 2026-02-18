@@ -30,6 +30,39 @@ class FluteLearner {
         this.profiles = this.loadProfiles();
         this.activeFlute = null;
         
+        // iOS detection
+        this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
+        // Current pitch (for AudioWorklet mode)
+        this.currentPitch = null;
+        
+        // Note names for mapping
+        this.noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        this.enharmonicMap = {
+            'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
+        };
+        
+        // Finger diagrams for 6-hole flute (2 rows of 3)
+        this.fingerings = {
+            0: [1,1,1,1,1,1],
+            1: [1,1,1,1,1,0],
+            2: [1,1,1,1,0,0],
+            3: [1,1,1,0,0,0],
+            4: [1,0,1,0,0,0],
+            5: [0,0,1,0,0,0],
+        };
+        
+        this.fingeringLabels = [
+            'All holes covered (root)',
+            'Lift bottom 1 hole (6)',
+            'Lift bottom 2 holes (5,6)',
+            'Lift bottom 3 holes (4,5,6)',
+            'Lift bottom 3 + middle top (2,4,5,6)',
+            'Lift top 2 + bottom 3 (only 3 closed)'
+        ];
+        
+        this.lessons = [];
         this.init();
     }
     
@@ -89,42 +122,6 @@ class FluteLearner {
     getActiveFlute() {
         if (!this.profiles.activeFluteId) return null;
         return this.profiles.flutes.find(f => f.id === this.profiles.activeFluteId);
-    }
-    
-    // iOS detection
-        this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        
-        // Current pitch (for AudioWorklet mode)
-        this.currentPitch = null;
-        
-        // Note names for mapping
-        this.noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        this.enharmonicMap = {
-            'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
-        };
-        
-        // Finger diagrams for 6-hole flute (2 rows of 3)
-        this.fingerings = {
-            0: [1,1,1,1,1,1],
-            1: [1,1,1,1,1,0],
-            2: [1,1,1,1,0,0],
-            3: [1,1,1,0,0,0],
-            4: [1,0,1,0,0,0],
-            5: [0,0,1,0,0,0],
-        };
-        
-        this.fingeringLabels = [
-            'All holes covered (root)',
-            'Lift bottom 1 hole (6)',
-            'Lift bottom 2 holes (5,6)',
-            'Lift bottom 3 holes (4,5,6)',
-            'Lift bottom 3 + middle top (2,4,5,6)',
-            'Lift top 2 + bottom 3 (only 3 closed)'
-        ];
-        
-        this.lessons = [];
-        this.init();
     }
     
     getFluteScale(key) {
