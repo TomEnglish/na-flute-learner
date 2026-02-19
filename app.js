@@ -61,7 +61,52 @@ class FluteLearner {
             'Lift bottom 3 + middle top (2,4,5,6)',
             'Lift top 2 + bottom 3 (only 3 closed)'
         ];
-        
+
+        // Scale types for NAF practice
+        this.scaleTypes = {
+            'pentatonic_minor': { name: 'Pentatonic Minor', intervals: [0, 3, 5, 7, 10, 12] },
+            'pentatonic_major': { name: 'Pentatonic Major', intervals: [0, 2, 4, 7, 9, 12] },
+            'blues':            { name: 'Blues', intervals: [0, 3, 5, 6, 7, 10, 12] },
+            'natural_minor':    { name: 'Natural Minor', intervals: [0, 2, 3, 5, 7, 8, 10, 12] },
+            'dorian':           { name: 'Dorian', intervals: [0, 2, 3, 5, 7, 9, 10, 12] },
+            'mixolydian':       { name: 'Mixolydian', intervals: [0, 2, 4, 5, 7, 9, 10, 12] }
+        };
+        this.selectedScaleType = 'pentatonic_minor';
+
+        // Fingerings by semitone offset from root (6-hole NAF)
+        this.fingeringsBySemitone = {
+            0:  { fingering: [1,1,1,1,1,1], label: 'All holes covered (root)', cross: false },
+            2:  { fingering: [1,1,1,1,0,1], label: 'Cross-fingering (major 2nd)', cross: true },
+            3:  { fingering: [1,1,1,1,1,0], label: 'Lift bottom hole (minor 3rd)', cross: false },
+            4:  { fingering: [1,1,1,0,1,1], label: 'Cross-fingering (major 3rd)', cross: true },
+            5:  { fingering: [1,1,1,1,0,0], label: 'Lift bottom 2 holes (4th)', cross: false },
+            6:  { fingering: [1,1,0,1,0,0], label: 'Cross-fingering (tritone)', cross: true },
+            7:  { fingering: [1,1,1,0,0,0], label: 'Lift bottom 3 holes (5th)', cross: false },
+            8:  { fingering: [1,1,0,0,0,0], label: 'Cross-fingering (minor 6th)', cross: true },
+            9:  { fingering: [1,0,0,0,0,0], label: 'Cross-fingering (major 6th)', cross: true },
+            10: { fingering: [1,0,1,0,0,0], label: 'Lift hole 2 + bottom 3 (minor 7th)', cross: false },
+            11: { fingering: [0,1,1,0,0,0], label: 'Cross-fingering (major 7th)', cross: true },
+            12: { fingering: [0,0,1,0,0,0], label: 'Top 2 + bottom 3 open (octave)', cross: false }
+        };
+
+        // 5-hole mode (hides hole 3)
+        this.fiveHoleMode = false;
+
+        // Drone & reference tone
+        this.droneOscillator = null;
+        this.droneGain = null;
+        this.droneActive = false;
+        this.refToneOscillator = null;
+        this.refToneGain = null;
+
+        // Metronome
+        this.metronomeInterval = null;
+        this.metronomeBpm = 60;
+        this.metronomeActive = false;
+
+        // Song mode
+        this.currentSong = null;
+
         this.lessons = [];
         this.init();
     }
@@ -144,8 +189,25 @@ class FluteLearner {
         return fluteScales[normalizedKey] || fluteScales['G'];
     }
 
+    getScaleNotes(key, scaleType) {
+        const type = this.scaleTypes[scaleType];
+        if (!type) return this.getFluteScale(key);
+
+        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const normalizedKey = this.enharmonicMap[key] || key;
+        const rootIndex = noteNames.indexOf(normalizedKey);
+        if (rootIndex === -1) return this.getFluteScale(key);
+
+        const baseOctave = rootIndex >= 9 ? 4 : 4; // A, A#, B start at 4
+        return type.intervals.map(semitones => {
+            const noteIndex = (rootIndex + semitones) % 12;
+            const octaveOffset = Math.floor((rootIndex + semitones) / 12);
+            return `${noteNames[noteIndex]}${baseOctave + octaveOffset}`;
+        });
+    }
+
     generateLessonsForKey(key) {
-        const scale = this.getFluteScale(key);
+        const scale = this.getScaleNotes(key, this.selectedScaleType);
         if (!scale) return [];
         
         const scaleNotes = scale.map(n => n.replace(/[0-9]/g, ''));
@@ -206,7 +268,21 @@ class FluteLearner {
             capturedNotes: document.getElementById('capturedNotes'),
             fingerDiagram: document.getElementById('fingerDiagram'),
             fingerDiagramContainer: document.getElementById('fingerDiagramContainer'),
-            fingeringLabel: document.getElementById('fingeringLabel')
+            fingeringLabel: document.getElementById('fingeringLabel'),
+            scaleTypeSelect: document.getElementById('scaleTypeSelect'),
+            fiveHoleToggle: document.getElementById('fiveHoleToggle'),
+            scaleLabel: document.getElementById('scaleLabel'),
+            songLibrary: document.getElementById('songLibrary'),
+            songModeBtn: document.getElementById('songModeBtn'),
+            droneBtn: document.getElementById('droneBtn'),
+            refToneBtn: document.getElementById('refToneBtn'),
+            metronomeBtn: document.getElementById('metronomeBtn'),
+            bpmDisplay: document.getElementById('bpmDisplay'),
+            bpmDown: document.getElementById('bpmDown'),
+            bpmUp: document.getElementById('bpmUp'),
+            holdTimeSlider: document.getElementById('holdTimeSlider'),
+            holdTimeDisplay: document.getElementById('holdTimeDisplay'),
+            practiceTools: document.getElementById('practiceTools')
         };
 
         // Event listeners (with iOS touch support)
@@ -236,7 +312,48 @@ class FluteLearner {
         if (this.elements.tunerModeBtn) {
             this.elements.tunerModeBtn.addEventListener('click', () => this.setMode('tuner'));
         }
+        if (this.elements.songModeBtn) {
+            this.elements.songModeBtn.addEventListener('click', () => this.setMode('songs'));
+        }
         
+        // 5-hole toggle
+        if (this.elements.fiveHoleToggle) {
+            this.elements.fiveHoleToggle.addEventListener('change', (e) => {
+                this.fiveHoleMode = e.target.checked;
+            });
+        }
+
+        // Drone toggle
+        if (this.elements.droneBtn) {
+            this.elements.droneBtn.addEventListener('click', () => this.toggleDrone());
+        }
+
+        // Reference tone (play target note)
+        if (this.elements.refToneBtn) {
+            this.elements.refToneBtn.addEventListener('click', () => {
+                const lesson = this.lessons[this.currentLesson];
+                if (lesson) this.playReferenceTone(lesson.notes[this.currentNoteIndex]);
+            });
+        }
+
+        // Metronome
+        if (this.elements.metronomeBtn) {
+            this.elements.metronomeBtn.addEventListener('click', () => this.toggleMetronome());
+        }
+        if (this.elements.bpmDown) {
+            this.elements.bpmDown.addEventListener('click', () => this.setMetronomeBpm(this.metronomeBpm - 5));
+        }
+        if (this.elements.bpmUp) {
+            this.elements.bpmUp.addEventListener('click', () => this.setMetronomeBpm(this.metronomeBpm + 5));
+        }
+
+        // Hold time slider
+        if (this.elements.holdTimeSlider) {
+            this.elements.holdTimeSlider.addEventListener('input', (e) => {
+                this.setHoldTime(parseInt(e.target.value));
+            });
+        }
+
         // Assessment buttons
         if (this.elements.assessCaptureBtn) {
             this.elements.assessCaptureBtn.addEventListener('click', () => this.onConfirmClick());
@@ -362,7 +479,12 @@ class FluteLearner {
             alert('Please select a flute key first');
             return;
         }
-        
+
+        // Read scale type selection
+        if (this.elements.scaleTypeSelect) {
+            this.selectedScaleType = this.elements.scaleTypeSelect.value || 'pentatonic_minor';
+        }
+
         this.elements.fluteKeySelect.style.borderColor = '';
         this.elements.startBtn.textContent = 'Starting...';
         this.elements.startBtn.disabled = true;
@@ -688,19 +810,55 @@ class FluteLearner {
 
     generateLessonsFromScale(scale) {
         const scaleNotes = scale.map(n => n.replace(/[0-9]/g, ''));
-        
+        const len = scaleNotes.length;
+
         console.log('📝 Generating lessons for scale:', scaleNotes);
 
-        return [
-            { title: "Lesson 1: Root Note", notes: [scaleNotes[0]], description: `Play ${scale[0]} - the root note (all holes covered)` },
-            { title: "Lesson 2: Two Notes", notes: [scaleNotes[0], scaleNotes[1]], description: `Play ${scale[0]}, then ${scale[1]}` },
-            { title: "Lesson 3: Three Notes", notes: [scaleNotes[0], scaleNotes[1], scaleNotes[2]], description: "Root, second, third note" },
-            { title: "Lesson 4: First Four Notes", notes: [scaleNotes[0], scaleNotes[1], scaleNotes[2], scaleNotes[3]], description: "Play up the first four notes" },
-            { title: "Lesson 5: Five Note Scale", notes: [scaleNotes[0], scaleNotes[1], scaleNotes[2], scaleNotes[3], scaleNotes[4]], description: "Play up the scale" },
-            { title: "Lesson 6: Scale Down", notes: [scaleNotes[4], scaleNotes[3], scaleNotes[2], scaleNotes[1], scaleNotes[0]], description: "Play down the scale" },
-            { title: "Lesson 7: Simple Melody", notes: [scaleNotes[0], scaleNotes[1], scaleNotes[2], scaleNotes[1], scaleNotes[0]], description: "Up and back down" },
-            { title: "Lesson 8: Full Range", notes: [scaleNotes[0], scaleNotes[1], scaleNotes[2], scaleNotes[3], scaleNotes[4], scaleNotes[3], scaleNotes[2], scaleNotes[1], scaleNotes[0]], description: "Up and down the full range" }
+        const lessons = [
+            { title: 'Lesson 1: Root Note', notes: [scaleNotes[0]], description: 'Play the root note' }
         ];
+
+        // Build-up lessons: add one note at a time (up to 6 build-up lessons)
+        const maxBuildUp = Math.min(len, 6);
+        for (let i = 2; i <= maxBuildUp; i++) {
+            lessons.push({
+                title: `Lesson ${lessons.length + 1}: ${i} Notes Up`,
+                notes: scaleNotes.slice(0, i),
+                description: `Play the first ${i} notes ascending`
+            });
+        }
+
+        // Full scale up (if we didn't already cover all notes)
+        if (len > maxBuildUp) {
+            lessons.push({
+                title: `Lesson ${lessons.length + 1}: Full Scale Up`,
+                notes: [...scaleNotes],
+                description: 'Play the entire scale ascending'
+            });
+        }
+
+        // Scale down
+        lessons.push({
+            title: `Lesson ${lessons.length + 1}: Scale Down`,
+            notes: [...scaleNotes].reverse(),
+            description: 'Play the scale descending'
+        });
+
+        // Simple melody
+        lessons.push({
+            title: `Lesson ${lessons.length + 1}: Simple Melody`,
+            notes: [scaleNotes[0], scaleNotes[1], scaleNotes[2], scaleNotes[1], scaleNotes[0]],
+            description: 'Up and back down'
+        });
+
+        // Full range up and down
+        lessons.push({
+            title: `Lesson ${lessons.length + 1}: Full Range`,
+            notes: [...scaleNotes, ...scaleNotes.slice(0, -1).reverse()],
+            description: 'Up and down the full scale'
+        });
+
+        return lessons;
     }
 
     loadLesson(index) {
@@ -714,16 +872,24 @@ class FluteLearner {
         this.currentNoteIndex = 0;
         this.noteAccuracies = [];
         this.lessonStartTime = Date.now();
-        
+
         this.elements.lessonTitle.textContent = lesson.title;
         this.elements.targetNote.textContent = lesson.notes[0];
-        
-        if (index === 0 && this.elements.fingerDiagramContainer) {
+
+        // Always show finger diagram
+        if (this.elements.fingerDiagramContainer) {
             this.elements.fingerDiagramContainer.style.display = 'flex';
         }
-        
-        this.updateFingerDiagram(0);
-        
+
+        this.updateFingerDiagram(lesson.notes[0]);
+
+        // Show scale type label
+        if (this.elements.scaleLabel) {
+            const scaleType = this.scaleTypes[this.selectedScaleType];
+            const keyName = this.fluteKey || '';
+            this.elements.scaleLabel.textContent = keyName && scaleType ? `${keyName} ${scaleType.name}` : '';
+        }
+
         this.elements.noteSequence.innerHTML = lesson.notes.map((note, i) => {
             let className = 'note-box';
             if (i === 0) className += ' current';
@@ -735,14 +901,32 @@ class FluteLearner {
         this.elements.resetBtn.style.display = 'inline-block';
     }
     
-    updateFingerDiagram(noteIndex) {
+    updateFingerDiagram(noteName) {
         if (!this.elements.fingerDiagram) return;
-        
-        const fingering = this.fingerings[noteIndex];
+
+        const allNoteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const rootKey = this.enharmonicMap[this.fluteKey] || this.fluteKey;
+        const cleanNote = this.enharmonicMap[noteName] || noteName;
+        const rootIdx = allNoteNames.indexOf(rootKey);
+        const noteIdx = allNoteNames.indexOf(cleanNote);
+
+        if (rootIdx === -1 || noteIdx === -1) return;
+
+        const semitones = (noteIdx - rootIdx + 12) % 12;
+        const fingeringData = this.fingeringsBySemitone[semitones];
+        if (!fingeringData) return;
+
         const holes = this.elements.fingerDiagram.querySelectorAll('.hole');
-        
         holes.forEach((hole, i) => {
-            if (fingering[i] === 1) {
+            // In 5-hole mode, hole 3 (index 2) is tied off
+            if (this.fiveHoleMode && i === 2) {
+                hole.classList.add('tied');
+                hole.classList.remove('open', 'cross');
+                hole.textContent = '—';
+                return;
+            }
+            hole.classList.remove('tied', 'cross');
+            if (fingeringData.fingering[i] === 1) {
                 hole.classList.remove('open');
                 hole.textContent = '●';
             } else {
@@ -750,10 +934,332 @@ class FluteLearner {
                 hole.textContent = '○';
             }
         });
-        
+
         if (this.elements.fingeringLabel) {
-            this.elements.fingeringLabel.textContent = this.fingeringLabels[noteIndex];
+            this.elements.fingeringLabel.textContent = fingeringData.label;
+            if (fingeringData.cross) {
+                this.elements.fingeringLabel.classList.add('cross-fingering');
+            } else {
+                this.elements.fingeringLabel.classList.remove('cross-fingering');
+            }
         }
+    }
+
+    // ===== DRONE & REFERENCE TONES =====
+
+    toggleDrone() {
+        if (!this.audioContext) return;
+
+        if (this.droneActive) {
+            this.stopDrone();
+        } else {
+            this.startDrone();
+        }
+    }
+
+    startDrone() {
+        if (!this.audioContext || !this.fluteKey) return;
+
+        const rootFreq = this.pitchDetector.noteToFrequency(
+            (this.enharmonicMap[this.fluteKey] || this.fluteKey) + '4'
+        );
+        if (!rootFreq) return;
+
+        this.droneOscillator = this.audioContext.createOscillator();
+        this.droneGain = this.audioContext.createGainNode();
+        this.droneOscillator.type = 'sine';
+        this.droneOscillator.frequency.setValueAtTime(rootFreq, this.audioContext.currentTime);
+        this.droneGain.gain.setValueAtTime(0, this.audioContext.currentTime);
+        this.droneGain.gain.linearRampToValueAtTime(0.15, this.audioContext.currentTime + 0.5);
+
+        this.droneOscillator.connect(this.droneGain);
+        this.droneGain.connect(this.audioContext.destination);
+        this.droneOscillator.start();
+        this.droneActive = true;
+
+        if (this.elements.droneBtn) {
+            this.elements.droneBtn.textContent = 'Drone ON';
+            this.elements.droneBtn.classList.add('active');
+        }
+    }
+
+    stopDrone() {
+        if (this.droneGain) {
+            this.droneGain.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.3);
+        }
+        setTimeout(() => {
+            if (this.droneOscillator) {
+                try { this.droneOscillator.stop(); } catch (e) {}
+                this.droneOscillator = null;
+            }
+            this.droneGain = null;
+        }, 400);
+        this.droneActive = false;
+
+        if (this.elements.droneBtn) {
+            this.elements.droneBtn.textContent = 'Drone OFF';
+            this.elements.droneBtn.classList.remove('active');
+        }
+    }
+
+    playReferenceTone(noteName) {
+        if (!this.audioContext) return;
+
+        // Stop previous reference tone
+        if (this.refToneOscillator) {
+            try { this.refToneOscillator.stop(); } catch (e) {}
+        }
+
+        const freq = this.pitchDetector.noteToFrequency(
+            noteName + (noteName.match(/\d/) ? '' : '4')
+        );
+        if (!freq) return;
+
+        this.refToneOscillator = this.audioContext.createOscillator();
+        this.refToneGain = this.audioContext.createGainNode();
+        this.refToneOscillator.type = 'sine';
+        this.refToneOscillator.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+        this.refToneGain.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+        this.refToneGain.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 1.5);
+
+        this.refToneOscillator.connect(this.refToneGain);
+        this.refToneGain.connect(this.audioContext.destination);
+        this.refToneOscillator.start();
+        this.refToneOscillator.stop(this.audioContext.currentTime + 1.5);
+    }
+
+    // ===== METRONOME =====
+
+    toggleMetronome() {
+        if (this.metronomeActive) {
+            this.stopMetronome();
+        } else {
+            this.startMetronome();
+        }
+    }
+
+    startMetronome() {
+        if (!this.audioContext) return;
+
+        this.metronomeActive = true;
+        this.playMetronomeTick();
+
+        const intervalMs = 60000 / this.metronomeBpm;
+        this.metronomeInterval = setInterval(() => {
+            this.playMetronomeTick();
+        }, intervalMs);
+
+        if (this.elements.metronomeBtn) {
+            this.elements.metronomeBtn.classList.add('active');
+        }
+    }
+
+    stopMetronome() {
+        this.metronomeActive = false;
+        if (this.metronomeInterval) {
+            clearInterval(this.metronomeInterval);
+            this.metronomeInterval = null;
+        }
+        if (this.elements.metronomeBtn) {
+            this.elements.metronomeBtn.classList.remove('active');
+        }
+    }
+
+    playMetronomeTick() {
+        if (!this.audioContext) return;
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGainNode();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, this.audioContext.currentTime);
+        gain.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(this.audioContext.destination);
+        osc.start();
+        osc.stop(this.audioContext.currentTime + 0.08);
+    }
+
+    setMetronomeBpm(bpm) {
+        this.metronomeBpm = Math.max(30, Math.min(200, bpm));
+        if (this.elements.bpmDisplay) {
+            this.elements.bpmDisplay.textContent = `${this.metronomeBpm} BPM`;
+        }
+        // Restart if active to apply new tempo
+        if (this.metronomeActive) {
+            this.stopMetronome();
+            this.startMetronome();
+        }
+    }
+
+    setHoldTime(ms) {
+        this.holdRequired = Math.max(300, Math.min(2000, ms));
+        if (this.elements.holdTimeDisplay) {
+            this.elements.holdTimeDisplay.textContent = `${(this.holdRequired / 1000).toFixed(1)}s`;
+        }
+    }
+
+    // ===== SONG LIBRARY =====
+
+    getSongLibrary() {
+        // Songs use scale degree numbers (1-based index into pentatonic minor)
+        // 1=root, 2=minor 3rd, 3=4th, 4=5th, 5=minor 7th, 6=octave
+        return [
+            {
+                id: 'first_steps',
+                title: 'First Steps',
+                difficulty: 'beginner',
+                description: 'Simple ascending and descending pattern',
+                degrees: [1,2,3,2,1, 1,2,3,4,3,2,1]
+            },
+            {
+                id: 'morning_song',
+                title: 'Morning Song',
+                difficulty: 'beginner',
+                description: 'Gentle call using three notes',
+                degrees: [1,1,2,1, 2,3,2,1, 1,2,3,2,1,1]
+            },
+            {
+                id: 'wind_call',
+                title: 'Wind Call',
+                difficulty: 'beginner',
+                description: 'A simple breathy melody',
+                degrees: [1,3,2,1, 1,3,4,3, 2,1,1]
+            },
+            {
+                id: 'river_walk',
+                title: 'River Walk',
+                difficulty: 'intermediate',
+                description: 'Flowing melody across the full scale',
+                degrees: [1,2,3,4,5, 4,3,2,1, 2,3,4,3, 2,1]
+            },
+            {
+                id: 'canyon_echo',
+                title: 'Canyon Echo',
+                difficulty: 'intermediate',
+                description: 'Call and response with leaps',
+                degrees: [1,3,5, 5,3,1, 2,4,5, 4,2,1]
+            },
+            {
+                id: 'moonrise',
+                title: 'Moonrise',
+                difficulty: 'intermediate',
+                description: 'Ascending melody with gentle descent',
+                degrees: [1,2,3,4,5,6, 5,4,3,2, 3,4,3,2,1]
+            },
+            {
+                id: 'hawk_flight',
+                title: 'Hawk Flight',
+                difficulty: 'intermediate',
+                description: 'Soaring melody with wide intervals',
+                degrees: [1,4,5,4,1, 2,5,4,3, 1,3,5,6,5,3,1]
+            },
+            {
+                id: 'cedar_song',
+                title: 'Cedar Song',
+                difficulty: 'intermediate',
+                description: 'Traditional-style pentatonic melody',
+                degrees: [3,2,1,2,3, 4,3,2,1, 3,4,5,4,3,2,1]
+            },
+            {
+                id: 'stars_above',
+                title: 'Stars Above',
+                difficulty: 'advanced',
+                description: 'Extended melody with full range',
+                degrees: [1,2,3,4,5,6, 5,4,3,2,1, 2,4,6,5,3,1, 1,3,5,6,5,4,3,2,1]
+            },
+            {
+                id: 'thunder_dance',
+                title: 'Thunder Dance',
+                difficulty: 'advanced',
+                description: 'Rhythmic pattern with repeated notes',
+                degrees: [1,1,3,3,1,1, 4,4,5,4,3, 1,1,3,5,5,3,1, 2,4,5,6,5,4,3,2,1]
+            },
+            {
+                id: 'water_prayer',
+                title: 'Water Prayer',
+                difficulty: 'advanced',
+                description: 'Meditative flowing melody',
+                degrees: [1,2,1,3,2, 3,4,3,5,4, 5,6,5,4,3, 4,3,2,1,2,1]
+            },
+            {
+                id: 'eagle_spirit',
+                title: 'Eagle Spirit',
+                difficulty: 'advanced',
+                description: 'Full range with dramatic leaps',
+                degrees: [1,5,6,5,1, 3,5,4,3,2, 1,4,5,6,5,4,3, 5,3,1,2,1]
+            }
+        ];
+    }
+
+    songDegreesToNotes(degrees) {
+        // Convert scale degree numbers to actual note names for the current flute
+        const scale = this.getScaleNotes(this.fluteKey, 'pentatonic_minor');
+        const scaleNotes = scale.map(n => n.replace(/[0-9]/g, ''));
+        return degrees.map(d => scaleNotes[Math.min(d - 1, scaleNotes.length - 1)]);
+    }
+
+    showSongLibrary() {
+        if (this.elements.songLibrary) {
+            this.elements.songLibrary.style.display = 'block';
+        }
+        this.renderSongList();
+    }
+
+    renderSongList() {
+        const container = document.getElementById('songList');
+        if (!container) return;
+
+        const songs = this.getSongLibrary();
+        const difficultyOrder = { beginner: 0, intermediate: 1, advanced: 2 };
+        const sorted = songs.sort((a, b) => difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty]);
+
+        container.innerHTML = sorted.map(song => `
+            <div class="song-card" data-id="${song.id}">
+                <div class="song-info">
+                    <span class="song-title">${song.title}</span>
+                    <span class="song-difficulty ${song.difficulty}">${song.difficulty}</span>
+                </div>
+                <p class="song-desc">${song.description}</p>
+                <div class="song-preview">${song.degrees.length} notes</div>
+                <button class="tool-btn song-play-btn" data-id="${song.id}">Play</button>
+            </div>
+        `).join('');
+
+        container.querySelectorAll('.song-play-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.startSong(e.target.dataset.id);
+            });
+        });
+    }
+
+    startSong(songId) {
+        const songs = this.getSongLibrary();
+        const song = songs.find(s => s.id === songId);
+        if (!song) return;
+
+        this.mode = 'song_play';
+        this.currentSong = song;
+        const noteNames = this.songDegreesToNotes(song.degrees);
+
+        // Use the lesson system to play through the song
+        this.lessons = [{
+            title: song.title,
+            notes: noteNames,
+            description: song.description
+        }];
+        this.currentLesson = 0;
+
+        // Switch to main lesson view
+        if (this.elements.songLibrary) this.elements.songLibrary.style.display = 'none';
+        this.elements.appMain.style.display = 'block';
+        this.loadLesson(0);
+    }
+
+    backToSongList() {
+        this.mode = 'songs';
+        this.elements.appMain.style.display = 'none';
+        if (this.elements.songLibrary) this.elements.songLibrary.style.display = 'block';
+        this.renderSongList();
     }
 
     startListening() {
@@ -777,7 +1283,7 @@ class FluteLearner {
                 this.updateTunerMode(pitch);
             } else if (this.mode === 'assessment') {
                 this.updateAssessmentPitch(pitch);
-            } else {
+            } else if (this.mode === 'lesson' || this.mode === 'song_play') {
                 this.updateLessonMode(pitch);
             }
 
@@ -924,7 +1430,7 @@ class FluteLearner {
             noteBoxes[this.currentNoteIndex].classList.remove('upcoming');
             noteBoxes[this.currentNoteIndex].classList.add('current');
             this.elements.targetNote.textContent = lesson.notes[this.currentNoteIndex];
-            this.updateFingerDiagram(this.currentNoteIndex);
+            this.updateFingerDiagram(lesson.notes[this.currentNoteIndex]);
         }
     }
 
@@ -978,17 +1484,31 @@ class FluteLearner {
 
     setMode(mode) {
         this.mode = mode;
-        
+
+        // Hide all views
+        this.elements.appMain.style.display = 'none';
+        this.elements.tunerMode.style.display = 'none';
+        if (this.elements.songLibrary) this.elements.songLibrary.style.display = 'none';
+
+        // Deactivate all tabs
+        if (this.elements.lessonModeBtn) this.elements.lessonModeBtn.classList.remove('active');
+        if (this.elements.tunerModeBtn) this.elements.tunerModeBtn.classList.remove('active');
+        if (this.elements.songModeBtn) this.elements.songModeBtn.classList.remove('active');
+
         if (mode === 'lesson') {
             this.elements.appMain.style.display = 'block';
-            this.elements.tunerMode.style.display = 'none';
             this.elements.lessonModeBtn.classList.add('active');
-            this.elements.tunerModeBtn.classList.remove('active');
-        } else {
-            this.elements.appMain.style.display = 'none';
+            // Restore scale lessons if coming from song mode
+            if (this.currentSong) {
+                this.currentSong = null;
+                this.lessons = this.generateLessonsForKey(this.fluteKey);
+                this.loadLesson(this.currentLesson);
+            }
+        } else if (mode === 'tuner') {
             this.elements.tunerMode.style.display = 'block';
-            this.elements.lessonModeBtn.classList.remove('active');
             this.elements.tunerModeBtn.classList.add('active');
+        } else if (mode === 'songs') {
+            this.showSongLibrary();
         }
     }
 

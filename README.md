@@ -7,11 +7,20 @@ A Progressive Web App for learning Native American flute with real-time pitch fe
 - **Real-time pitch detection** - Listens to your flute and detects notes instantly
 - **AudioWorklet support** - Uses a separate thread for better performance (with fallback)
 - **Visual feedback** - Needle tuner shows if you're sharp or flat
-- **Progressive lessons** - From single notes to full scales
+- **Progressive lessons** - From single notes to full scales, dynamically generated
+- **6 Scale types** - Pentatonic Minor, Pentatonic Major, Blues, Natural Minor, Dorian, Mixolydian
 - **Multi-flute support** - Works with any key (G, Bb, D, A, F#, etc.)
+- **5-hole and 6-hole flutes** - Toggle for 5-hole flutes with tied hole 3
+- **Nakai TAB fingering** - Vertical fingering diagram in NAF community standard format
+- **Cross-fingering support** - Extended fingerings for non-pentatonic notes
+- **Drone tone** - Root note drone for pitch reference while practicing
+- **Reference tones** - Tap to hear any target note before playing
+- **Metronome** - Adjustable BPM (30-200) for tempo practice
+- **Adjustable hold time** - Set note hold duration from 0.3s to 2.0s
+- **Song library** - 12 built-in melodies across beginner/intermediate/advanced levels
+- **Play-along mode** - Songs use the lesson system with pitch detection feedback
 - **Accuracy tracking** - See how well you're hitting each note
 - **Assessment mode** - Detect your flute's exact scale
-- **Finger diagrams** - Visual guides for finger positions
 - **Pitch smoothing** - Stable readings with temporal filtering
 - **Offline capable** - Works without internet after first load
 - **iPhone installable** - Add to home screen like a native app

@@ -377,47 +377,56 @@ header h1 {
     opacity: 0.8;
 }
 
-/* Finger Diagram */
+/* Finger Diagram - Nakai TAB Vertical Layout */
 .finger-diagram-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     margin-bottom: 24px;
-    padding: 20px;
+    padding: 16px;
     background: rgba(255,255,255,0.05);
     border-radius: 12px;
 }
 
 .finger-diagram {
     background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
-    padding: 20px;
+    padding: 16px 24px;
     border-radius: 12px;
     border: 2px solid rgba(255,255,255,0.2);
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
-.flute-body {
+.nakai-tab {
     display: flex;
     flex-direction: column;
-    gap: 12px;
     align-items: center;
+    gap: 6px;
 }
 
-.hole-row {
-    display: flex;
-    gap: 16px;
+.hand-label {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.5);
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.hand-divider {
+    width: 30px;
+    height: 1px;
+    background: rgba(255,255,255,0.2);
+    margin: 2px 0;
 }
 
 .hole {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: #000;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 20px;
     color: #fff;
     border: 2px solid rgba(255,255,255,0.3);
     transition: all 0.3s;
@@ -425,16 +434,59 @@ header h1 {
 
 .hole.open {
     background: transparent;
-    color: transparent;
-    border-color: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.3);
+    border-color: rgba(255,255,255,0.15);
+}
+
+.hole.cross {
+    border-color: var(--accent);
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.3);
+}
+
+.hole.tied {
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.08);
+    font-size: 14px;
 }
 
 .fingering-label {
-    margin-top: 12px;
+    margin-top: 10px;
     text-align: center;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #ffd700;
     font-weight: 600;
+}
+
+.fingering-label.cross-fingering {
+    color: var(--accent);
+    font-style: italic;
+}
+
+.scale-label {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Five-hole toggle */
+.five-hole-toggle {
+    margin-top: 8px;
+}
+
+.five-hole-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.five-hole-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
 }
 
 /* Status Section */
@@ -697,6 +749,96 @@ header h1 {
     text-align: right;
 }
 
+/* Practice Tools */
+.practice-tools {
+    background: var(--bg-card);
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.tools-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.tools-row:last-child {
+    margin-bottom: 0;
+}
+
+.tool-btn {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    touch-action: manipulation;
+}
+
+.tool-btn:hover {
+    background: rgba(255,255,255,0.12);
+    color: var(--text-primary);
+}
+
+.tool-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary-light);
+}
+
+.tool-btn-sm {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255,255,255,0.15);
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.tool-btn-sm:hover {
+    background: rgba(255,255,255,0.15);
+}
+
+.bpm-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.hold-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.hold-control input[type="range"] {
+    width: 80px;
+    accent-color: var(--accent);
+    height: 4px;
+}
+
+.hold-control label {
+    white-space: nowrap;
+}
+
 /* Controls */
 .controls {
     display: flex;
@@ -823,6 +965,97 @@ header h1 {
     color: var(--text-secondary);
     margin-bottom: 40px;
     font-family: 'SF Mono', 'Monaco', monospace;
+}
+
+/* Song Library */
+.song-library {
+    padding: 20px 0;
+}
+
+.song-library h2 {
+    text-align: center;
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+    color: var(--accent);
+}
+
+.song-library-desc {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.song-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.song-card {
+    background: var(--bg-card);
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: border-color 0.2s;
+}
+
+.song-card:hover {
+    border-color: rgba(255,255,255,0.2);
+}
+
+.song-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.song-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.song-difficulty {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.song-difficulty.beginner {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4CAF50;
+}
+
+.song-difficulty.intermediate {
+    background: rgba(255, 215, 0, 0.15);
+    color: #FFD700;
+}
+
+.song-difficulty.advanced {
+    background: rgba(244, 67, 54, 0.15);
+    color: #f44336;
+}
+
+.song-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.song-preview {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    margin-bottom: 8px;
+}
+
+.song-play-btn {
+    width: 100%;
 }
 
 /* Responsive */

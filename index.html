@@ -69,6 +69,20 @@
                                 <option value="Bb">Bb / A#</option>
                             </optgroup>
                         </select>
+                        <select id="scaleTypeSelect">
+                            <option value="pentatonic_minor">Pentatonic Minor (Standard)</option>
+                            <option value="pentatonic_major">Pentatonic Major</option>
+                            <option value="blues">Blues</option>
+                            <option value="natural_minor">Natural Minor</option>
+                            <option value="dorian">Dorian</option>
+                            <option value="mixolydian">Mixolydian</option>
+                        </select>
+                        <div class="five-hole-toggle">
+                            <label>
+                                <input type="checkbox" id="fiveHoleToggle">
+                                <span>5-hole flute (hole 3 tied)</span>
+                            </label>
+                        </div>
                     </div>
                     <button id="startBtn" class="secondary-btn" role="button" onclick="try{if(window.app)window.app.start();else alert('App not loaded')}catch(e){alert(e.message)}">Start Lessons →</button>
                 </div>
@@ -138,24 +152,23 @@
                 <h2 id="lessonTitle">Lesson 1: Basic Notes</h2>
                 <p class="lesson-instructions">Play each highlighted note and hold it steady until the progress bar fills</p>
 
-                <!-- Finger Diagram - Only show at start -->
+                <!-- Nakai TAB Finger Diagram -->
                 <div class="finger-diagram-container" id="fingerDiagramContainer" style="display: none;">
                     <div class="finger-diagram" id="fingerDiagram">
-                        <div class="flute-body">
-                            <div class="hole-row">
-                                <div class="hole" data-hole="1">●</div>
-                                <div class="hole" data-hole="2">●</div>
-                                <div class="hole" data-hole="3">●</div>
-                            </div>
-                            <div class="hole-row">
-                                <div class="hole" data-hole="4">●</div>
-                                <div class="hole" data-hole="5">●</div>
-                                <div class="hole" data-hole="6">●</div>
-                            </div>
+                        <div class="nakai-tab">
+                            <span class="hand-label">L</span>
+                            <div class="hole" data-hole="1">●</div>
+                            <div class="hole" data-hole="2">●</div>
+                            <div class="hole" data-hole="3">●</div>
+                            <div class="hand-divider"></div>
+                            <span class="hand-label">R</span>
+                            <div class="hole" data-hole="4">●</div>
+                            <div class="hole" data-hole="5">●</div>
+                            <div class="hole" data-hole="6">●</div>
                         </div>
                         <p class="fingering-label" id="fingeringLabel">All holes covered</p>
                     </div>
-                    <button class="secondary-btn" onclick="document.getElementById('fingerDiagramContainer').style.display='none'" style="margin-top: 12px;">Got it, hide diagram</button>
+                    <p class="scale-label" id="scaleLabel"></p>
                 </div>
 
                 <div class="note-sequence" id="noteSequence">
@@ -201,6 +214,26 @@
                 </div>
             </section>
 
+            <!-- Practice Tools -->
+            <section class="practice-tools" id="practiceTools">
+                <div class="tools-row">
+                    <button id="droneBtn" class="tool-btn">Drone OFF</button>
+                    <button id="refToneBtn" class="tool-btn">Hear Note</button>
+                    <button id="metronomeBtn" class="tool-btn">Metronome</button>
+                </div>
+                <div class="tools-row">
+                    <div class="bpm-control">
+                        <button id="bpmDown" class="tool-btn-sm">-</button>
+                        <span id="bpmDisplay">60 BPM</span>
+                        <button id="bpmUp" class="tool-btn-sm">+</button>
+                    </div>
+                    <div class="hold-control">
+                        <label>Hold: <span id="holdTimeDisplay">0.8s</span></label>
+                        <input type="range" id="holdTimeSlider" min="300" max="2000" value="800" step="100">
+                    </div>
+                </div>
+            </section>
+
             <!-- Controls -->
             <section class="controls">
                 <button id="resetBtn" class="secondary-btn">↺ Reset Lesson</button>
@@ -226,6 +259,15 @@
             </div>
         </main>
 
+        <!-- Song Library -->
+        <div class="song-library" id="songLibrary" style="display: none;">
+            <h2>Song Library</h2>
+            <p class="song-library-desc">Learn melodies using your flute's pentatonic scale. Tap Play to start.</p>
+            <div class="song-list" id="songList">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
         <!-- Tuner Mode -->
         <div class="tuner-mode" id="tunerMode" style="display: none;">
             <h2>🎸 Tuner Mode</h2>
@@ -247,8 +289,9 @@
 
         <!-- Mode Toggle - visible after starting lessons -->
         <div class="mode-toggle" id="modeToggle" style="display: none;">
-            <button id="lessonModeBtn" class="active">Lesson Mode</button>
-            <button id="tunerModeBtn">Tuner Mode</button>
+            <button id="lessonModeBtn" class="active">Lessons</button>
+            <button id="songModeBtn">Songs</button>
+            <button id="tunerModeBtn">Tuner</button>
         </div>
     </div>
 
