@@ -303,7 +303,7 @@ class PitchDetector {
      * Check if detected pitch matches target note
      * Returns accuracy percentage and match status
      */
-    checkNoteMatch(detected, targetNote, tolerance = 50) {
+    checkNoteMatch(detected, targetNote, tolerance = 30) {
         if (!detected) {
             return { match: false, accuracy: 0 };
         }

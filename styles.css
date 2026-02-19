@@ -355,6 +355,27 @@ header h1 {
     border-color: rgba(255,255,255,0.3);
 }
 
+/* Lesson Countdown */
+.lesson-countdown {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(0,0,0,0.6);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+    text-align: center;
+    animation: countdownPulse 1s ease-in-out infinite;
+}
+
+@keyframes countdownPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
 /* Lesson Section */
 .lesson-section {
     background: var(--bg-card);

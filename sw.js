@@ -1,5 +1,5 @@
 // Service Worker for NA Flute Learner PWA
-const CACHE_NAME = 'flute-app-v3';
+const CACHE_NAME = 'flute-app-v4';
 const urlsToCache = [
     '/',
     '/index.html',

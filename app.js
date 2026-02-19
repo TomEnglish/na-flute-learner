@@ -107,6 +107,12 @@ class FluteLearner {
         // Song mode
         this.currentSong = null;
 
+        // Lesson difficulty / gating
+        this.lessonAccuracies = [];  // per-note averages for the whole lesson
+        this.lessonCountdown = false;
+        this.minNoteAccuracy = 60;   // minimum avg accuracy to accept a note
+        this.minLessonAccuracy = 70; // minimum avg to advance to next lesson
+
         this.lessons = [];
         this.init();
     }
@@ -871,10 +877,11 @@ class FluteLearner {
 
         this.currentNoteIndex = 0;
         this.noteAccuracies = [];
-        this.lessonStartTime = Date.now();
+        this.lessonAccuracies = [];
+        this.lessonCountdown = true;
 
         this.elements.lessonTitle.textContent = lesson.title;
-        this.elements.targetNote.textContent = lesson.notes[0];
+        this.elements.targetNote.textContent = '...';
 
         // Always show finger diagram
         if (this.elements.fingerDiagramContainer) {
@@ -899,8 +906,35 @@ class FluteLearner {
 
         this.elements.nextLessonBtn.style.display = 'none';
         this.elements.resetBtn.style.display = 'inline-block';
+
+        // Countdown before first note
+        this.runLessonCountdown(lesson);
     }
-    
+
+    runLessonCountdown(lesson) {
+        this.lessonCountdown = true;
+        let count = 3;
+
+        const countdownEl = document.getElementById('lessonCountdown');
+        if (countdownEl) {
+            countdownEl.style.display = 'flex';
+            countdownEl.textContent = count;
+        }
+
+        const tick = setInterval(() => {
+            count--;
+            if (count > 0) {
+                if (countdownEl) countdownEl.textContent = count;
+            } else {
+                clearInterval(tick);
+                if (countdownEl) countdownEl.style.display = 'none';
+                this.lessonCountdown = false;
+                this.lessonStartTime = Date.now();
+                this.elements.targetNote.textContent = lesson.notes[0];
+            }
+        }, 1000);
+    }
+
     updateFingerDiagram(noteName) {
         if (!this.elements.fingerDiagram) return;
 
@@ -1103,90 +1137,103 @@ class FluteLearner {
     getSongLibrary() {
         // Songs use scale degree numbers (1-based index into pentatonic minor)
         // 1=root, 2=minor 3rd, 3=4th, 4=5th, 5=minor 7th, 6=octave
+        // durations: 1=quarter, 2=half, 4=whole (multiplier for hold time)
         return [
             {
                 id: 'first_steps',
                 title: 'First Steps',
                 difficulty: 'beginner',
                 description: 'Simple ascending and descending pattern',
-                degrees: [1,2,3,2,1, 1,2,3,4,3,2,1]
+                degrees:    [1,2,3,2,1, 1,2,3,4,3,2,1],
+                durations:  [2,2,2,2,4, 1,1,1,1,1,1,4]
             },
             {
                 id: 'morning_song',
                 title: 'Morning Song',
                 difficulty: 'beginner',
                 description: 'Gentle call using three notes',
-                degrees: [1,1,2,1, 2,3,2,1, 1,2,3,2,1,1]
+                degrees:    [1,1,2,1, 2,3,2,1, 1,2,3,2,1,1],
+                durations:  [2,1,1,4, 1,1,1,4, 1,1,2,1,1,4]
             },
             {
                 id: 'wind_call',
                 title: 'Wind Call',
                 difficulty: 'beginner',
                 description: 'A simple breathy melody',
-                degrees: [1,3,2,1, 1,3,4,3, 2,1,1]
+                degrees:    [1,3,2,1, 1,3,4,3, 2,1,1],
+                durations:  [2,1,1,4, 2,1,1,4, 1,1,4]
             },
             {
                 id: 'river_walk',
                 title: 'River Walk',
                 difficulty: 'intermediate',
                 description: 'Flowing melody across the full scale',
-                degrees: [1,2,3,4,5, 4,3,2,1, 2,3,4,3, 2,1]
+                degrees:    [1,2,3,4,5, 4,3,2,1, 2,3,4,3, 2,1],
+                durations:  [1,1,1,1,2, 1,1,1,4, 1,1,2,1, 1,4]
             },
             {
                 id: 'canyon_echo',
                 title: 'Canyon Echo',
                 difficulty: 'intermediate',
                 description: 'Call and response with leaps',
-                degrees: [1,3,5, 5,3,1, 2,4,5, 4,2,1]
+                degrees:    [1,3,5, 5,3,1, 2,4,5, 4,2,1],
+                durations:  [1,1,4, 1,1,4, 1,1,4, 1,1,4]
             },
             {
                 id: 'moonrise',
                 title: 'Moonrise',
                 difficulty: 'intermediate',
                 description: 'Ascending melody with gentle descent',
-                degrees: [1,2,3,4,5,6, 5,4,3,2, 3,4,3,2,1]
+                degrees:    [1,2,3,4,5,6, 5,4,3,2, 3,4,3,2,1],
+                durations:  [1,1,1,1,1,4, 1,1,1,4, 1,1,1,1,4]
             },
             {
                 id: 'hawk_flight',
                 title: 'Hawk Flight',
                 difficulty: 'intermediate',
                 description: 'Soaring melody with wide intervals',
-                degrees: [1,4,5,4,1, 2,5,4,3, 1,3,5,6,5,3,1]
+                degrees:    [1,4,5,4,1, 2,5,4,3, 1,3,5,6,5,3,1],
+                durations:  [1,1,2,1,4, 1,2,1,4, 1,1,1,2,1,1,4]
             },
             {
                 id: 'cedar_song',
                 title: 'Cedar Song',
                 difficulty: 'intermediate',
                 description: 'Traditional-style pentatonic melody',
-                degrees: [3,2,1,2,3, 4,3,2,1, 3,4,5,4,3,2,1]
+                degrees:    [3,2,1,2,3, 4,3,2,1, 3,4,5,4,3,2,1],
+                durations:  [1,1,2,1,2, 1,1,1,4, 1,1,2,1,1,1,4]
             },
             {
                 id: 'stars_above',
                 title: 'Stars Above',
                 difficulty: 'advanced',
                 description: 'Extended melody with full range',
-                degrees: [1,2,3,4,5,6, 5,4,3,2,1, 2,4,6,5,3,1, 1,3,5,6,5,4,3,2,1]
+                degrees:    [1,2,3,4,5,6, 5,4,3,2,1, 2,4,6,5,3,1, 1,3,5,6,5,4,3,2,1],
+                durations:  [1,1,1,1,1,4, 1,1,1,1,4, 1,1,2,1,1,4, 1,1,1,2,1,1,1,1,4]
             },
             {
                 id: 'thunder_dance',
                 title: 'Thunder Dance',
                 difficulty: 'advanced',
                 description: 'Rhythmic pattern with repeated notes',
-                degrees: [1,1,3,3,1,1, 4,4,5,4,3, 1,1,3,5,5,3,1, 2,4,5,6,5,4,3,2,1]
+                degrees:    [1,1,3,3,1,1, 4,4,5,4,3, 1,1,3,5,5,3,1, 2,4,5,6,5,4,3,2,1],
+                durations:  [1,1,1,1,1,2, 1,1,2,1,4, 1,1,1,1,1,1,4, 1,1,1,2,1,1,1,1,4]
             },
             {
                 id: 'water_prayer',
                 title: 'Water Prayer',
                 difficulty: 'advanced',
                 description: 'Meditative flowing melody',
-                degrees: [1,2,1,3,2, 3,4,3,5,4, 5,6,5,4,3, 4,3,2,1,2,1]
+                degrees:    [1,2,1,3,2, 3,4,3,5,4, 5,6,5,4,3, 4,3,2,1,2,1],
+                durations:  [2,1,2,1,4, 2,1,2,1,4, 2,1,2,1,4, 1,1,1,2,1,4]
             },
             {
                 id: 'eagle_spirit',
                 title: 'Eagle Spirit',
                 difficulty: 'advanced',
                 description: 'Full range with dramatic leaps',
-                degrees: [1,5,6,5,1, 3,5,4,3,2, 1,4,5,6,5,4,3, 5,3,1,2,1]
+                degrees:    [1,5,6,5,1, 3,5,4,3,2, 1,4,5,6,5,4,3, 5,3,1,2,1],
+                durations:  [1,1,2,1,4, 1,2,1,1,4, 1,1,1,2,1,1,4, 1,1,2,1,4]
             }
         ];
     }
@@ -1232,19 +1279,31 @@ class FluteLearner {
         });
     }
 
-    startSong(songId) {
+    async startSong(songId) {
         const songs = this.getSongLibrary();
         const song = songs.find(s => s.id === songId);
         if (!song) return;
 
+        // Ensure audio is initialized
+        if (!this.audioContext) {
+            const success = await this.initAudio();
+            if (!success) {
+                alert('Could not access microphone.');
+                return;
+            }
+        }
+
         this.mode = 'song_play';
+        this.isActive = true;
         this.currentSong = song;
         const noteNames = this.songDegreesToNotes(song.degrees);
 
         // Use the lesson system to play through the song
+        // Durations are multipliers of the base hold time
         this.lessons = [{
             title: song.title,
             notes: noteNames,
+            durations: song.durations || null,
             description: song.description
         }];
         this.currentLesson = 0;
@@ -1252,7 +1311,12 @@ class FluteLearner {
         // Switch to main lesson view
         if (this.elements.songLibrary) this.elements.songLibrary.style.display = 'none';
         this.elements.appMain.style.display = 'block';
+        this.elements.modeToggle.style.display = 'flex';
         this.loadLesson(0);
+
+        if (!this.isListening) {
+            this.startListening();
+        }
     }
 
     backToSongList() {
@@ -1294,11 +1358,14 @@ class FluteLearner {
     }
 
     updateLessonMode(pitch) {
+        // Block during countdown
+        if (this.lessonCountdown) return;
+
         this.debugCounter++;
         if (this.debugCounter % 60 === 0) {
             console.log('🔊 Pitch check:', pitch ? `${pitch.fullNote} @ ${pitch.frequency}Hz` : 'no pitch');
         }
-        
+
         if (!pitch) {
             this.elements.currentNote.textContent = '—';
             this.elements.frequency.textContent = '— Hz';
@@ -1344,19 +1411,41 @@ class FluteLearner {
             }
             
             this.updateAccuracyMeter();
-            
+
+            // Check if accuracy is too low during hold — reject if so
+            const currentAvg = this.noteAccuracies.reduce((a, b) => a + b, 0) / this.noteAccuracies.length;
+            if (this.noteAccuracies.length > 5 && currentAvg < this.minNoteAccuracy) {
+                // Reset hold — note wasn't accurate enough
+                this.holdStartTime = null;
+                this.noteAccuracies = [];
+                this.elements.targetNote.style.textShadow = '';
+                this.elements.holdIndicator.classList.remove('active');
+                this.elements.holdText.classList.remove('active');
+                this.elements.holdText.textContent = 'Hold the note...';
+                this.elements.holdText.style.color = '';
+                this.elements.holdBar.style.width = '0%';
+                return;
+            }
+
+            // Calculate hold time needed (use per-note duration if song has it)
+            const lesson = this.lessons[this.currentLesson];
+            let requiredHold = this.holdRequired;
+            if (lesson.durations && lesson.durations[this.currentNoteIndex]) {
+                requiredHold = this.holdRequired * lesson.durations[this.currentNoteIndex];
+            }
+
             const holdTime = Date.now() - this.holdStartTime;
-            const progress = Math.min(100, (holdTime / this.holdRequired) * 100);
-            
+            const progress = Math.min(100, (holdTime / requiredHold) * 100);
+
             this.elements.holdBar.style.width = `${progress}%`;
             this.elements.targetNote.style.textShadow = `0 0 ${20 + progress/2}px rgba(255, 215, 0, ${0.3 + progress/200})`;
-            
+
             if (progress >= 100) {
                 this.elements.holdText.textContent = '✓ Good!';
                 this.elements.holdText.style.color = '#4CAF50';
             }
 
-            if (holdTime >= this.holdRequired) {
+            if (holdTime >= requiredHold) {
                 this.advanceNote();
             }
         } else {
@@ -1410,10 +1499,16 @@ class FluteLearner {
     advanceNote() {
         const lesson = this.lessons[this.currentLesson];
         const noteBoxes = this.elements.noteSequence.querySelectorAll('.note-box');
-        
+
+        // Record this note's accuracy for the lesson total
+        if (this.noteAccuracies.length > 0) {
+            const noteAvg = this.noteAccuracies.reduce((a, b) => a + b, 0) / this.noteAccuracies.length;
+            this.lessonAccuracies.push(noteAvg);
+        }
+
         noteBoxes[this.currentNoteIndex].classList.remove('current');
         noteBoxes[this.currentNoteIndex].classList.add('completed');
-        
+
         this.holdStartTime = null;
         this.elements.targetNote.style.textShadow = '';
         this.elements.holdIndicator.classList.remove('active');
@@ -1444,17 +1539,37 @@ class FluteLearner {
 
     showCompletion() {
         const elapsed = Math.round((Date.now() - this.lessonStartTime) / 1000);
-        const avgAccuracy = this.noteAccuracies.length > 0
-            ? Math.round(this.noteAccuracies.reduce((a, b) => a + b, 0) / this.noteAccuracies.length)
+        const avgAccuracy = this.lessonAccuracies.length > 0
+            ? Math.round(this.lessonAccuracies.reduce((a, b) => a + b, 0) / this.lessonAccuracies.length)
             : 0;
 
         this.elements.statAccuracy.textContent = `${avgAccuracy}%`;
         this.elements.statTime.textContent = `${elapsed}s`;
         this.elements.completionModal.style.display = 'flex';
-        
-        this.elements.nextLessonBtn.style.display = 'inline-block';
-        this.elements.resetBtn.style.display = 'none';
+
+        const passed = avgAccuracy >= this.minLessonAccuracy;
+
+        // Update modal message
+        const modalTitle = this.elements.completionModal.querySelector('h2');
+        if (modalTitle) {
+            modalTitle.textContent = passed ? 'Lesson Complete!' : 'Try Again!';
+        }
+
         this.saveProgress();
+
+        // Auto-advance or auto-restart after 3 seconds
+        setTimeout(() => {
+            this.elements.completionModal.style.display = 'none';
+            if (passed) {
+                this.currentLesson++;
+                this.loadLesson(this.currentLesson);
+                this.elements.accuracyMeter.style.width = '0%';
+                this.elements.accuracyValue.textContent = '0%';
+                this.saveProgress();
+            } else {
+                this.resetLesson();
+            }
+        }, 3000);
     }
 
     closeCompletionModal() {
